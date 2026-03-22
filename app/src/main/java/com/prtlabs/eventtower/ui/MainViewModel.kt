@@ -1,28 +1,47 @@
 package com.prtlabs.eventtower.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.prtlabs.eventtower.data.Event
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.prtlabs.eventtower.data.EventDao
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-class MainViewModel : ViewModel() {
-    private val _events = MutableStateFlow<List<Event>>(emptyList())
-    val events = _events.asStateFlow()
+class MainViewModel(private val eventDao: EventDao) : ViewModel() {
 
-    val upcomingEvents = _events.map { list ->
+    val events = eventDao.getAllEvents().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    val upcomingEvents = events.map { list ->
         list.filter { it.date.isAfter(LocalDate.now()) || it.date.isEqual(LocalDate.now()) }
             .sortedBy { it.date }
     }
 
-    val pastEvents = _events.map { list ->
+    val pastEvents = events.map { list ->
         list.filter { it.date.isBefore(LocalDate.now()) }
             .sortedByDescending { it.date }
     }
 
     fun addEvent(event: Event) {
-        _events.value = _events.value + event
+        viewModelScope.launch {
+            eventDao.insertEvent(event)
+        }
+    }
+}
+
+class MainViewModelFactory(private val eventDao: EventDao) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MainViewModel(eventDao) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

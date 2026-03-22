@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -20,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.prtlabs.eventtower.ui.MainViewModel
+import com.prtlabs.eventtower.ui.MainViewModelFactory
 import com.prtlabs.eventtower.ui.screens.AddEventScreen
 import com.prtlabs.eventtower.ui.screens.EventListScreen
 import com.prtlabs.eventtower.ui.theme.EventTowerTheme
@@ -42,7 +44,13 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 }
 
 @Composable
-fun MainScreen(viewModel: MainViewModel = viewModel()) {
+fun MainScreen() {
+    val context = LocalContext.current
+    val app = context.applicationContext as EventApplication
+    val viewModel: MainViewModel = viewModel(
+        factory = MainViewModelFactory(app.database.eventDao())
+    )
+
     val navController = rememberNavController()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState(initial = emptyList())
     val pastEvents by viewModel.pastEvents.collectAsState(initial = emptyList())
