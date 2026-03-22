@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Upcoming
@@ -16,13 +16,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.prtlabs.eventtower.ui.MainViewModel
 import com.prtlabs.eventtower.ui.MainViewModelFactory
-import com.prtlabs.eventtower.ui.screens.AddEventScreen
+import com.prtlabs.eventtower.ui.screens.EventFormScreen
 import com.prtlabs.eventtower.ui.screens.EventListScreen
 import com.prtlabs.eventtower.ui.theme.EventTowerTheme
 
@@ -31,7 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EventTowerTheme {
+            EventTowerTheme(darkTheme = true) {
                 MainScreen()
             }
         }
@@ -54,6 +56,9 @@ fun MainScreen() {
     val navController = rememberNavController()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState(initial = emptyList())
     val pastEvents by viewModel.pastEvents.collectAsState(initial = emptyList())
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
 
     val items = listOf(Screen.Upcoming, Screen.Past)
 
@@ -94,24 +99,64 @@ fun MainScreen() {
                 EventListScreen(
                     title = "Upcoming Events",
                     events = upcomingEvents,
-                    onAddEventClick = { navController.navigate("add_event") }
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelect = { viewModel.onCategorySelect(it) },
+                    onAddEventClick = { navController.navigate("add_event") },
+                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
+                    onDeleteEvent = { viewModel.deleteEvent(it) },
+                    isUpcoming = true
                 )
             }
             composable(Screen.Past.route) {
                 EventListScreen(
                     title = "Past Events",
                     events = pastEvents,
-                    onAddEventClick = { navController.navigate("add_event") }
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelect = { viewModel.onCategorySelect(it) },
+                    onAddEventClick = { navController.navigate("add_event") },
+                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
+                    onDeleteEvent = { viewModel.deleteEvent(it) },
+                    isUpcoming = false
                 )
             }
             composable("add_event") {
-                AddEventScreen(
-                    onEventAdded = { event ->
+                EventFormScreen(
+                    categories = categories,
+                    onSave = { event ->
                         viewModel.addEvent(event)
                         navController.popBackStack()
                     },
                     onBack = { navController.popBackStack() }
                 )
+            }
+            composable(
+                route = "edit_event/{eventId}",
+                arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val eventId = backStackEntry.arguments?.getString("eventId")
+                val event by viewModel.getEventById(eventId ?: "").collectAsState(initial = null)
+                
+                event?.let {
+                    EventFormScreen(
+                        event = it,
+                        categories = categories,
+                        onSave = { updatedEvent ->
+                            viewModel.updateEvent(updatedEvent)
+                            navController.popBackStack()
+                        },
+                        onDelete = { eventToDelete ->
+                            viewModel.deleteEvent(eventToDelete)
+                            navController.popBackStack()
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

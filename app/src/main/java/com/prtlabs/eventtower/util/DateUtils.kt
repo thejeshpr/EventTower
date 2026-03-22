@@ -7,6 +7,8 @@ import java.time.temporal.ChronoUnit
 object DateUtils {
     fun formatDuration(targetDate: LocalDate): String {
         val today = LocalDate.now()
+        if (targetDate.isEqual(today)) return "Today!"
+
         val period = Period.between(today, targetDate)
         val isPast = targetDate.isBefore(today)
         val absolutePeriod = if (isPast) Period.between(targetDate, today) else period
