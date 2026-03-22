@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -166,13 +167,17 @@ fun EventListScreen(
                                 count = todayEvents.size, 
                                 isExpanded = isTodayExpanded, 
                                 icon = Icons.Default.Today,
-                                accentColor = Color(0xFFFBC02D), // Yellow accent
+                                accentColor = Color(0xFFFBC02D), 
                                 onToggle = { isTodayExpanded = !isTodayExpanded }
                             ) 
                         }
                         if (isTodayExpanded) {
-                            items(todayEvents) { event ->
-                                EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                            items(todayEvents, key = { it.id }) { event ->
+                                SwipeToDeleteContainer(
+                                    onDelete = { eventToDelete = event }
+                                ) {
+                                    EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                                }
                             }
                         }
                     }
@@ -182,14 +187,18 @@ fun EventListScreen(
                                 title = "Next 10 Days", 
                                 count = next10DaysEvents.size, 
                                 isExpanded = isNext10Expanded, 
-                                icon = Icons.Default.EventAvailable, // Changed icon from Download
-                                accentColor = Color(0xFF81C784), // Green accent
+                                icon = Icons.Default.EventAvailable,
+                                accentColor = Color(0xFF81C784), 
                                 onToggle = { isNext10Expanded = !isNext10Expanded }
                             ) 
                         }
                         if (isNext10Expanded) {
-                            items(next10DaysEvents) { event ->
-                                EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                            items(next10DaysEvents, key = { it.id }) { event ->
+                                SwipeToDeleteContainer(
+                                    onDelete = { eventToDelete = event }
+                                ) {
+                                    EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                                }
                             }
                         }
                     }
@@ -205,14 +214,22 @@ fun EventListScreen(
                             ) 
                         }
                         if (isUpcomingExpanded) {
-                            items(futureEvents) { event ->
-                                EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                            items(futureEvents, key = { it.id }) { event ->
+                                SwipeToDeleteContainer(
+                                    onDelete = { eventToDelete = event }
+                                ) {
+                                    EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                                }
                             }
                         }
                     }
                 } else {
-                    items(events) { event ->
-                        EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                    items(events, key = { it.id }) { event ->
+                        SwipeToDeleteContainer(
+                            onDelete = { eventToDelete = event }
+                        ) {
+                            EventCard(event = event, onClick = { onEventClick(event) }, onDelete = { eventToDelete = event })
+                        }
                     }
                 }
             }
@@ -242,6 +259,54 @@ fun EventListScreen(
             }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToDeleteContainer(
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.StartToEnd) {
+                onDelete()
+                false 
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromEndToStart = false,
+        backgroundContent = {
+            val isSwiping = dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            val color = if (isSwiping) {
+                MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+            } else Color.Transparent
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(color),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (isSwiping) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        modifier = Modifier.padding(start = 24.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        content = { content() }
+    )
 }
 
 @Composable
@@ -294,12 +359,27 @@ fun SectionHeader(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "$title ($count)",
+                text = title,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (accentColor == Color.Gray) Color.White else accentColor
             )
+            
+            Surface(
+                color = accentColor.copy(alpha = 0.2f),
+                shape = CircleShape,
+                modifier = Modifier.padding(end = 12.dp)
+            ) {
+                Text(
+                    text = count.toString(),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (accentColor == Color.Gray) Color.White else accentColor
+                )
+            }
+
             Icon(
                 imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",

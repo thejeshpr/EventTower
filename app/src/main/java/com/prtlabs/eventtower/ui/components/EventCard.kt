@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,7 +47,7 @@ fun EventCard(
     }
     
     val contentColor = when {
-        isToday -> Color(0xFF827717)
+        isToday -> Color.Black
         daysRemaining in 1..10 && !isPast -> Color(0xFF2E7D32)
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -61,10 +62,10 @@ fun EventCard(
     ) {
         Row(
             modifier = Modifier
-                .padding(18.dp)
+                .padding(20.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -87,10 +88,11 @@ fun EventCard(
                     }
                 }
                 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Surface(
                     color = contentColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = event.category,
@@ -99,6 +101,8 @@ fun EventCard(
                         color = contentColor
                     )
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Surface(
                     color = contentColor.copy(alpha = 0.1f),
@@ -124,35 +128,42 @@ fun EventCard(
                     }
                 }
 
+                // Only compose the notes section if notes are present, saving vertical space
                 if (!event.notes.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = event.notes,
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor.copy(alpha = 0.8f),
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 8.dp)
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
             
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = 8.dp)) {
+            Column(
+                horizontalAlignment = Alignment.End, 
+                modifier = Modifier.padding(start = 12.dp)
+            ) {
                 val durationText = DateUtils.formatDuration(event.date)
                 Text(
                     text = durationText,
-                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 30.sp),
+                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp),
                     fontWeight = FontWeight.Black,
-                    color = contentColor
+                    color = contentColor,
+                    textAlign = TextAlign.End
                 )
                 
                 if (durationText != "Today!") {
                     Text(
                         text = if (isPast) "Since then" else "Remaining",
                         style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.7f)
+                        color = contentColor.copy(alpha = 0.7f),
+                        textAlign = TextAlign.End
                     )
                 }
                 
+                // Reduced spacer height so card shrinks when no notes are present
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 IconButton(
