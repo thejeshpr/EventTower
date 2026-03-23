@@ -154,7 +154,7 @@ fun MainScreen() {
         NavHost(
             navController = navController,
             startDestination = Screen.Upcoming.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             composable(Screen.Upcoming.route) {
                 EventListScreen(
