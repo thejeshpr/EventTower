@@ -59,7 +59,7 @@ fun HorizonScreen(
                 .background(Color(0xFF0D1117))
                 .pointerInput(Unit) {
                     detectTapGestures { 
-                        selectedEvent = null // Close detail when clicking background
+                        selectedEvent = null
                     }
                 }
         ) {
@@ -120,17 +120,14 @@ fun RadarMap(
     val textMeasurer = rememberTextMeasurer()
     val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
 
-    // Calculate dot positions
+    // Configuration
+    val baseRadius = 100f
+    val pixelsPerDay = 6.0f // Increased for better spacing
+
     val eventPositions = remember(events) {
         events.map { event ->
             val days = ChronoUnit.DAYS.between(today, event.date).coerceAtLeast(0)
-            val radius = when {
-                days == 0L -> 100f
-                days <= 10L -> 200f
-                days <= 30L -> 300f
-                days <= 90L -> 400f
-                else -> 500f
-            }
+            val radius = baseRadius + (days * pixelsPerDay)
             val angle = (event.id.hashCode().absoluteValue % 360).toFloat()
             event to Pair(radius, angle)
         }
@@ -158,46 +155,81 @@ fun RadarMap(
     ) {
         val center = Offset(size.width / 2, size.height / 2)
 
-        // Today Circle
+        // 1. Today Circle (Solid Yellow)
         drawCircle(
             color = Color(0xFFFBC02D),
-            radius = 100f,
+            radius = baseRadius,
             center = center,
-            style = Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
+            style = Stroke(width = 2f)
         )
-        
-        // Next 10 Days
+        val todayTextResult = textMeasurer.measure(
+            text = "TODAY",
+            style = TextStyle(color = Color(0xFFFBC02D).copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        )
+        drawText(todayTextResult, topLeft = Offset(center.x - todayTextResult.size.width / 2, center.y + baseRadius + 4f))
+
+        // 2. Next 10 Days Circle (Solid Green, slightly larger radius)
+        val next10Radius = baseRadius + (15 * pixelsPerDay) // Increased offset from Today
         drawCircle(
             color = Color(0xFF81C784),
-            radius = 200f,
+            radius = next10Radius,
             center = center,
-            style = Stroke(width = 1.5f)
+            style = Stroke(width = 2f)
         )
+        val next10TextResult = textMeasurer.measure(
+            text = "NEXT 10 DAYS",
+            style = TextStyle(color = Color(0xFF81C784).copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        )
+        drawText(next10TextResult, topLeft = Offset(center.x - next10TextResult.size.width / 2, center.y + next10Radius + 4f))
 
-        // Month Labels and further circles
+        // 3. Sequential Month Circles
         val circles = listOf(
-            Triple(300f, today.plusMonths(1), 0.3f),
-            Triple(400f, today.plusMonths(2), 0.2f),
-            Triple(500f, today.plusMonths(3), 0.1f)
+            Triple(next10Radius + 80f, today.plusMonths(1), "solid_white"),
+            Triple(next10Radius + 160f, today.plusMonths(2), "solid_80"),
+            Triple(next10Radius + 240f, today.plusMonths(3), "dotted_60"),
+            Triple(next10Radius + 320f, today.plusMonths(4), "dotted_40")
         )
 
-        circles.forEach { (radius, date, alpha) ->
+        circles.forEach { (radius, date, style) ->
+            val color: Color
+            val alpha: Float
+            val pathEffect: PathEffect?
+
+            when (style) {
+                "solid_white" -> {
+                    color = Color.White
+                    alpha = 1.0f
+                    pathEffect = null
+                }
+                "solid_80" -> {
+                    color = Color.White
+                    alpha = 0.8f
+                    pathEffect = null
+                }
+                "dotted_60" -> {
+                    color = Color.White
+                    alpha = 0.6f
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 10f), 0f)
+                }
+                else -> { // dotted_40
+                    color = Color.White
+                    alpha = 0.4f
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 10f), 0f)
+                }
+            }
+
             drawCircle(
-                color = Color.Gray.copy(alpha = alpha),
+                color = color.copy(alpha = alpha),
                 radius = radius,
                 center = center,
-                style = Stroke(width = 1f)
+                style = Stroke(width = 1f, pathEffect = pathEffect)
             )
             
-            // Draw Month Text on the circle line
-            val textLayoutResult = textMeasurer.measure(
-                text = date.format(monthFormatter),
-                style = TextStyle(color = Color.Gray.copy(alpha = 0.6f), fontSize = 10.sp)
+            val monthTextResult = textMeasurer.measure(
+                text = date.format(monthFormatter).uppercase(),
+                style = TextStyle(color = color.copy(alpha = alpha * 0.7f), fontSize = 10.sp)
             )
-            drawText(
-                textLayoutResult = textLayoutResult,
-                topLeft = Offset(center.x - textLayoutResult.size.width / 2, center.y + radius + 4f)
-            )
+            drawText(monthTextResult, topLeft = Offset(center.x - monthTextResult.size.width / 2, center.y + radius + 4f))
         }
 
         // Spinning Light
@@ -213,8 +245,8 @@ fun RadarMap(
                 startAngle = -45f,
                 sweepAngle = 90f,
                 useCenter = true,
-                size = Size(1000f, 1000f),
-                topLeft = Offset(center.x - 500f, center.y - 500f)
+                size = Size(2000f, 2000f),
+                topLeft = Offset(center.x - 1000f, center.y - 1000f)
             )
         }
 
@@ -224,20 +256,23 @@ fun RadarMap(
             val dotX = center.x + r * cos(a * PI / 180).toFloat()
             val dotY = center.y + r * sin(a * PI / 180).toFloat()
             
-            val days = ChronoUnit.DAYS.between(today, event.date)
+            val days = ChronoUnit.DAYS.between(today, event.date).coerceAtLeast(0)
+            val baseOpacity = (1f - (days / 200f)).coerceIn(0.2f, 1f)
+            
             val color = when {
                 days == 0L -> Color(0xFFFBC02D)
                 days <= 10L -> Color(0xFF81C784)
-                else -> Color.White.copy(alpha = 0.6f)
-            }
+                else -> Color.White
+            }.copy(alpha = baseOpacity)
 
             drawCircle(color = color, radius = 14f, center = Offset(dotX, dotY))
+            
             if (days <= 10) {
-                drawCircle(color = color.copy(alpha = 0.3f), radius = 22f, center = Offset(dotX, dotY))
+                drawCircle(color = color.copy(alpha = 0.3f * baseOpacity), radius = 22f, center = Offset(dotX, dotY))
             }
         }
 
-        // Tower Silhouette
+        // Watchtower Silhouette
         val towerWidth = 30f
         val towerHeight = 80f
         drawRect(
