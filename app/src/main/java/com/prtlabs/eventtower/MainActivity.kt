@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Upcoming
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import com.prtlabs.eventtower.ui.MainViewModel
 import com.prtlabs.eventtower.ui.MainViewModelFactory
 import com.prtlabs.eventtower.ui.screens.EventFormScreen
 import com.prtlabs.eventtower.ui.screens.EventListScreen
+import com.prtlabs.eventtower.ui.screens.HorizonScreen
 import com.prtlabs.eventtower.ui.theme.EventTowerTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Upcoming : Screen("upcoming", "Upcoming", Icons.Default.Upcoming)
+    object Horizon : Screen("horizon", "Horizon", Icons.Default.Visibility)
     object Past : Screen("past", "Past", Icons.Default.History)
 }
 
@@ -105,7 +108,7 @@ fun MainScreen() {
         }
     }
 
-    val items = listOf(Screen.Upcoming, Screen.Past)
+    val items = listOf(Screen.Upcoming, Screen.Horizon, Screen.Past)
 
     Scaffold(
         bottomBar = {
@@ -113,7 +116,7 @@ fun MainScreen() {
             val currentDestination = navBackStackEntry?.destination
             
             val currentRoute = currentDestination?.route
-            if (currentRoute == Screen.Upcoming.route || currentRoute == Screen.Past.route) {
+            if (currentRoute == Screen.Upcoming.route || currentRoute == Screen.Horizon.route || currentRoute == Screen.Past.route) {
                 NavigationBar {
                     items.forEach { screen ->
                         val isUpcomingTab = screen == Screen.Upcoming
@@ -171,6 +174,12 @@ fun MainScreen() {
                     onExportClick = { exportLauncher.launch("events_backup.json") },
                     onImportClick = { importLauncher.launch(arrayOf("application/json")) },
                     isUpcoming = true
+                )
+            }
+            composable(Screen.Horizon.route) {
+                HorizonScreen(
+                    upcomingEvents = upcomingEvents,
+                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") }
                 )
             }
             composable(Screen.Past.route) {
