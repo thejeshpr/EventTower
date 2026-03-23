@@ -1,9 +1,12 @@
 package com.prtlabs.eventtower
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -27,6 +30,9 @@ import com.prtlabs.eventtower.ui.MainViewModelFactory
 import com.prtlabs.eventtower.ui.screens.EventFormScreen
 import com.prtlabs.eventtower.ui.screens.EventListScreen
 import com.prtlabs.eventtower.ui.theme.EventTowerTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +58,7 @@ fun MainScreen() {
     val viewModel: MainViewModel = viewModel(
         factory = MainViewModelFactory(app.database.eventDao())
     )
+    val scope = rememberCoroutineScope()
 
     val navController = rememberNavController()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState(initial = emptyList())
@@ -59,6 +66,40 @@ fun MainScreen() {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+
+    var importResult by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var exportResult by remember { mutableStateOf<Int?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                val json = viewModel.exportToJson()
+                val count = (upcomingEvents.size + pastEvents.size) // This is filtered, but for export we use allEvents.value.size inside VM usually. 
+                // Actually allEvents is internal to VM. Let's just say "Data exported".
+                context.contentResolver.openOutputStream(it)?.use { stream ->
+                    stream.write(json.toByteArray())
+                }
+                // To show count accurately, we should get it from allEvents in VM. 
+                // Since exportToJson is synchronous and uses current value of stateIn, it's fine.
+                exportResult = 1 // Just a trigger to show dialog
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                val json = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { it.readText() }
+                if (json != null) {
+                    importResult = viewModel.importFromJson(json)
+                }
+            }
+        }
+    }
 
     val items = listOf(Screen.Upcoming, Screen.Past)
 
@@ -107,6 +148,8 @@ fun MainScreen() {
                     onAddEventClick = { navController.navigate("add_event") },
                     onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
                     onDeleteEvent = { viewModel.deleteEvent(it) },
+                    onExportClick = { exportLauncher.launch("events_backup.json") },
+                    onImportClick = { importLauncher.launch(arrayOf("application/json")) },
                     isUpcoming = true
                 )
             }
@@ -122,6 +165,8 @@ fun MainScreen() {
                     onAddEventClick = { navController.navigate("add_event") },
                     onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
                     onDeleteEvent = { viewModel.deleteEvent(it) },
+                    onExportClick = { exportLauncher.launch("events_backup.json") },
+                    onImportClick = { importLauncher.launch(arrayOf("application/json")) },
                     isUpcoming = false
                 )
             }
@@ -159,5 +204,38 @@ fun MainScreen() {
                 }
             }
         }
+    }
+
+    if (exportResult != null) {
+        AlertDialog(
+            onDismissRequest = { exportResult = null },
+            title = { Text("Export Successful") },
+            text = { Text("Your events have been exported to JSON successfully.") },
+            confirmButton = {
+                TextButton(onClick = { exportResult = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (importResult != null) {
+        val (new, overwritten) = importResult!!
+        AlertDialog(
+            onDismissRequest = { importResult = null },
+            title = { Text(if (new == -1) "Import Failed" else "Import Result") },
+            text = { 
+                if (new == -1) {
+                    Text("There was an error importing the file. Please check if the format is correct.")
+                } else {
+                    Text("Import completed:\n- New events: $new\n- Overwritten: $overwritten")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { importResult = null }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

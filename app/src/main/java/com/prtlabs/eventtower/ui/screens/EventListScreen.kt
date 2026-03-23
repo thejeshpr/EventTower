@@ -38,6 +38,8 @@ fun EventListScreen(
     onAddEventClick: () -> Unit,
     onEventClick: (Event) -> Unit,
     onDeleteEvent: (Event) -> Unit,
+    onExportClick: () -> Unit,
+    onImportClick: () -> Unit,
     isUpcoming: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -86,10 +88,28 @@ fun EventListScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(text = { Text("Settings") }, onClick = { showMenu = false })
-                            DropdownMenuItem(text = { Text("Import") }, onClick = { showMenu = false })
-                            DropdownMenuItem(text = { Text("Export") }, onClick = { showMenu = false })
-                            DropdownMenuItem(text = { Text("Help") }, onClick = { showMenu = false })
+                            DropdownMenuItem(
+                                text = { Text("Settings") }, 
+                                onClick = { showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import") }, 
+                                onClick = { 
+                                    showMenu = false
+                                    onImportClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export") }, 
+                                onClick = { 
+                                    showMenu = false
+                                    onExportClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Help") }, 
+                                onClick = { showMenu = false }
+                            )
                         }
                     }
                 )

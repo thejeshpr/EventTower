@@ -39,17 +39,18 @@ fun EventCard(
     val isPast = event.date.isBefore(today)
     val daysRemaining = ChronoUnit.DAYS.between(today, event.date)
     
+    // Using solid colors to prevent SwipeToDismiss background from bleeding through
     val cardBg = when {
         isToday -> Color(0xFFFFF9C4)
         daysRemaining in 1..10 -> Color(0xFFE8F5E9)
-        isPast -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.surfaceVariant
+        isPast -> Color(0xFF2D2F31) // Solid dark gray for past events
+        else -> Color(0xFF1E1F22) // Solid dark surface color
     }
     
     val contentColor = when {
         isToday -> Color.Black
         daysRemaining in 1..10 && !isPast -> Color(0xFF2E7D32)
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> Color.White.copy(alpha = 0.9f)
     }
 
     Card(
@@ -128,7 +129,6 @@ fun EventCard(
                     }
                 }
 
-                // Only compose the notes section if notes are present, saving vertical space
                 if (!event.notes.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -163,7 +163,6 @@ fun EventCard(
                     )
                 }
                 
-                // Reduced spacer height so card shrinks when no notes are present
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 IconButton(

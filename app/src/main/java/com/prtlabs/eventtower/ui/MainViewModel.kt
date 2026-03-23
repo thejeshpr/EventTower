@@ -3,14 +3,27 @@ package com.prtlabs.eventtower.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.prtlabs.eventtower.data.Event
 import com.prtlabs.eventtower.data.EventDao
 import com.prtlabs.eventtower.data.Recurring
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class MainViewModel(private val eventDao: EventDao) : ViewModel() {
+
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(LocalDate::class.java, com.google.gson.JsonSerializer<LocalDate> { src, _, _ ->
+            com.google.gson.JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE))
+        })
+        .registerTypeAdapter(LocalDate::class.java, com.google.gson.JsonDeserializer<LocalDate> { json, _, _ ->
+            LocalDate.parse(json.asString, DateTimeFormatter.ISO_LOCAL_DATE)
+        })
+        .create()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -49,7 +62,6 @@ class MainViewModel(private val eventDao: EventDao) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val pastEvents = filteredEvents.map { list ->
-        // Exclude recurring events from the Past tab as they "roll over" to the Upcoming tab
         list.filter { it.recurring == Recurring.NO && it.date.isBefore(LocalDate.now()) }
             .sortedByDescending { it.date }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -95,6 +107,33 @@ class MainViewModel(private val eventDao: EventDao) : ViewModel() {
 
     fun getEventById(id: String): Flow<Event?> {
         return allEvents.map { list -> list.find { it.id == id } }
+    }
+
+    fun exportToJson(): String {
+        return gson.toJson(allEvents.value)
+    }
+
+    suspend fun importFromJson(json: String): Pair<Int, Int> {
+        return try {
+            val type = object : TypeToken<List<Event>>() {}.type
+            val importedEvents: List<Event> = gson.fromJson(json, type)
+            var newCount = 0
+            var overwrittenCount = 0
+            
+            val currentIds = allEvents.value.map { it.id }.toSet()
+            
+            importedEvents.forEach { event ->
+                if (currentIds.contains(event.id)) {
+                    overwrittenCount++
+                } else {
+                    newCount++
+                }
+                eventDao.insertEvent(event)
+            }
+            Pair(newCount, overwrittenCount)
+        } catch (e: Exception) {
+            Pair(-1, -1) // Error case
+        }
     }
 }
 
