@@ -3,11 +3,9 @@ package com.prtlabs.eventtower.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -31,7 +29,7 @@ import java.time.temporal.ChronoUnit
 fun EventCard(
     event: Event,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
+    onDelete: () -> Unit, // onDelete is still kept in the signature as it's triggered by swipe
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
@@ -39,12 +37,11 @@ fun EventCard(
     val isPast = event.date.isBefore(today)
     val daysRemaining = ChronoUnit.DAYS.between(today, event.date)
     
-    // Using solid colors to prevent SwipeToDismiss background from bleeding through
     val cardBg = when {
         isToday -> Color(0xFFFFF9C4)
         daysRemaining in 1..10 -> Color(0xFFE8F5E9)
-        isPast -> Color(0xFF2D2F31) // Solid dark gray for past events
-        else -> Color(0xFF1E1F22) // Solid dark surface color
+        isPast -> Color(0xFF2D2F31)
+        else -> Color(0xFF1E1F22)
     }
     
     val contentColor = when {
@@ -66,7 +63,7 @@ fun EventCard(
                 .padding(20.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically // Centered for better vertical balance
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,41 +138,37 @@ fun EventCard(
                 }
             }
             
+            // Prominent duration display using the full right column height
             Column(
                 horizontalAlignment = Alignment.End, 
-                modifier = Modifier.padding(start = 12.dp)
+                modifier = Modifier.padding(start = 16.dp)
             ) {
                 val durationText = DateUtils.formatDuration(event.date)
                 Text(
                     text = durationText,
-                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp),
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontSize = 36.sp,
+                        letterSpacing = (-1).sp
+                    ),
+                    fontWeight = FontWeight.ExtraBold,
                     color = contentColor,
                     textAlign = TextAlign.End
                 )
                 
-                if (durationText != "Today!") {
-                    Text(
-                        text = if (isPast) "Since then" else "Remaining",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.7f),
-                        textAlign = TextAlign.End
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(contentColor.copy(alpha = 0.1f), CircleShape)
+                Surface(
+                    color = contentColor.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        modifier = Modifier.size(20.dp),
-                        tint = contentColor
+                    Text(
+                        text = if (isPast) "SINCE THEN" else if (isToday) "TODAY" else "REMAINING",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = contentColor.copy(alpha = 0.8f),
+                        textAlign = TextAlign.End
                     )
                 }
             }
