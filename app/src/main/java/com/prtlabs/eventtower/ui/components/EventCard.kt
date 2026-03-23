@@ -29,7 +29,7 @@ import java.time.temporal.ChronoUnit
 fun EventCard(
     event: Event,
     onClick: () -> Unit,
-    onDelete: () -> Unit, // onDelete is still kept in the signature as it's triggered by swipe
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
@@ -63,7 +63,7 @@ fun EventCard(
                 .padding(20.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically // Centered for better vertical balance
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -138,7 +138,6 @@ fun EventCard(
                 }
             }
             
-            // Prominent duration display using the full right column height
             Column(
                 horizontalAlignment = Alignment.End, 
                 modifier = Modifier.padding(start = 16.dp)
@@ -155,22 +154,18 @@ fun EventCard(
                     textAlign = TextAlign.End
                 )
                 
-                Surface(
-                    color = contentColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Text(
-                        text = if (isPast) "SINCE THEN" else if (isToday) "TODAY" else "REMAINING",
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = contentColor.copy(alpha = 0.8f),
-                        textAlign = TextAlign.End
-                    )
-                }
+                // Changed style from pill to simple uppercase text to distinguish from category
+                Text(
+                    text = if (isPast) "SINCE THEN" else if (isToday) "TODAY" else "REMAINING",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    ),
+                    color = contentColor.copy(alpha = 0.5f),
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }
