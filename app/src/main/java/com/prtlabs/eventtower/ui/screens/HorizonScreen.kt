@@ -118,11 +118,11 @@ fun RadarMap(
     )
 
     val textMeasurer = rememberTextMeasurer()
-    val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
+    val monthFormatter = DateTimeFormatter.ofPattern("MMM")
 
-    // Configuration
-    val baseRadius = 100f
-    val pixelsPerDay = 6.0f // Increased for better spacing
+    // Spacing configuration - Adjusted for clear separation
+    val baseRadius = 80f
+    val pixelsPerDay = 8.0f 
 
     val eventPositions = remember(events) {
         events.map { event ->
@@ -168,26 +168,27 @@ fun RadarMap(
         )
         drawText(todayTextResult, topLeft = Offset(center.x - todayTextResult.size.width / 2, center.y + baseRadius + 4f))
 
-        // 2. Next 10 Days Circle (Solid Green, slightly larger radius)
-        val next10Radius = baseRadius + (15 * pixelsPerDay) // Increased offset from Today
+        // 2. 10 Days Circle (Solid Green)
+        val radius10Days = baseRadius + (10 * pixelsPerDay)
         drawCircle(
             color = Color(0xFF81C784),
-            radius = next10Radius,
+            radius = radius10Days,
             center = center,
             style = Stroke(width = 2f)
         )
-        val next10TextResult = textMeasurer.measure(
-            text = "NEXT 10 DAYS",
+        val text10DaysResult = textMeasurer.measure(
+            text = "10DAYS",
             style = TextStyle(color = Color(0xFF81C784).copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
         )
-        drawText(next10TextResult, topLeft = Offset(center.x - next10TextResult.size.width / 2, center.y + next10Radius + 4f))
+        drawText(text10DaysResult, topLeft = Offset(center.x - text10DaysResult.size.width / 2, center.y + radius10Days + 4f))
 
-        // 3. Sequential Month Circles
+        // 3. Sequential Rings (Month-based)
+        // We'll calculate radii based on 30, 60, 90, 120 days to represent upcoming months
         val circles = listOf(
-            Triple(next10Radius + 80f, today.plusMonths(1), "solid_white"),
-            Triple(next10Radius + 160f, today.plusMonths(2), "solid_80"),
-            Triple(next10Radius + 240f, today.plusMonths(3), "dotted_60"),
-            Triple(next10Radius + 320f, today.plusMonths(4), "dotted_40")
+            Triple(baseRadius + (30 * pixelsPerDay), today.plusMonths(1), "solid_white"),
+            Triple(baseRadius + (60 * pixelsPerDay), today.plusMonths(2), "solid_80"),
+            Triple(baseRadius + (90 * pixelsPerDay), today.plusMonths(3), "dotted_60"),
+            Triple(baseRadius + (120 * pixelsPerDay), today.plusMonths(4), "dotted_40")
         )
 
         circles.forEach { (radius, date, style) ->
