@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,12 +18,16 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.prtlabs.eventtower.data.Event
 import com.prtlabs.eventtower.ui.components.EventCard
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.*
 
@@ -51,7 +56,12 @@ fun HorizonScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color(0xFF0D1117)) // Dark space background
+                .background(Color(0xFF0D1117))
+                .pointerInput(Unit) {
+                    detectTapGestures { 
+                        selectedEvent = null // Close detail when clicking background
+                    }
+                }
         ) {
             RadarMap(
                 events = upcomingEvents,
@@ -63,13 +73,27 @@ fun HorizonScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 32.dp)
+                        .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
                 ) {
-                    EventCard(
-                        event = event,
-                        onClick = { onEventClick(event) },
-                        onDelete = { /* Logic handled in list view */ }
-                    )
+                    Box {
+                        EventCard(
+                            event = event,
+                            onClick = { onEventClick(event) },
+                            onDelete = { /* Logic handled in list view */ }
+                        )
+                        IconButton(
+                            onClick = { selectedEvent = null },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close, 
+                                contentDescription = "Close",
+                                tint = Color.Gray.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -93,7 +117,10 @@ fun RadarMap(
         label = "Rotation"
     )
 
-    // Calculate dot positions once or when events change
+    val textMeasurer = rememberTextMeasurer()
+    val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
+
+    // Calculate dot positions
     val eventPositions = remember(events) {
         events.map { event ->
             val days = ChronoUnit.DAYS.between(today, event.date).coerceAtLeast(0)
@@ -104,7 +131,6 @@ fun RadarMap(
                 days <= 90L -> 400f
                 else -> 500f
             }
-            // Distribute events around the circle based on hash or title to keep them separated
             val angle = (event.id.hashCode().absoluteValue % 360).toFloat()
             event to Pair(radius, angle)
         }
@@ -118,13 +144,12 @@ fun RadarMap(
                     val centerX = size.width / 2
                     val centerY = size.height / 2
                     
-                    // Find if any dot was clicked
                     eventPositions.find { (_, pos) ->
                         val (r, a) = pos
                         val dotX = centerX + r * cos(a * PI / 180).toFloat()
                         val dotY = centerY + r * sin(a * PI / 180).toFloat()
                         val dist = sqrt((offset.x - dotX).pow(2) + (offset.y - dotY).pow(2))
-                        dist < 40f // Threshold for tap
+                        dist < 40f
                     }?.let { (event, _) ->
                         onEventSelect(event)
                     }
@@ -133,35 +158,49 @@ fun RadarMap(
     ) {
         val center = Offset(size.width / 2, size.height / 2)
 
-        // Today Circle (Yellow)
+        // Today Circle
         drawCircle(
             color = Color(0xFFFBC02D),
             radius = 100f,
             center = center,
             style = Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
         )
-        // Next 10 Days (Green)
+        
+        // Next 10 Days
         drawCircle(
             color = Color(0xFF81C784),
             radius = 200f,
             center = center,
             style = Stroke(width = 1.5f)
         )
-        // Further circles
-        drawCircle(
-            color = Color.Gray.copy(alpha = 0.3f),
-            radius = 300f,
-            center = center,
-            style = Stroke(width = 1f)
-        )
-        drawCircle(
-            color = Color.Gray.copy(alpha = 0.2f),
-            radius = 400f,
-            center = center,
-            style = Stroke(width = 1f)
+
+        // Month Labels and further circles
+        val circles = listOf(
+            Triple(300f, today.plusMonths(1), 0.3f),
+            Triple(400f, today.plusMonths(2), 0.2f),
+            Triple(500f, today.plusMonths(3), 0.1f)
         )
 
-        // Draw Spinning Light from Center
+        circles.forEach { (radius, date, alpha) ->
+            drawCircle(
+                color = Color.Gray.copy(alpha = alpha),
+                radius = radius,
+                center = center,
+                style = Stroke(width = 1f)
+            )
+            
+            // Draw Month Text on the circle line
+            val textLayoutResult = textMeasurer.measure(
+                text = date.format(monthFormatter),
+                style = TextStyle(color = Color.Gray.copy(alpha = 0.6f), fontSize = 10.sp)
+            )
+            drawText(
+                textLayoutResult = textLayoutResult,
+                topLeft = Offset(center.x - textLayoutResult.size.width / 2, center.y + radius + 4f)
+            )
+        }
+
+        // Spinning Light
         rotate(rotation, center) {
             val sweepGradient = Brush.sweepGradient(
                 0f to Color.Transparent,
@@ -179,7 +218,7 @@ fun RadarMap(
             )
         }
 
-        // Draw Event Dots
+        // Event Dots
         eventPositions.forEach { (event, pos) ->
             val (r, a) = pos
             val dotX = center.x + r * cos(a * PI / 180).toFloat()
@@ -192,31 +231,20 @@ fun RadarMap(
                 else -> Color.White.copy(alpha = 0.6f)
             }
 
-            drawCircle(
-                color = color,
-                radius = 14f,
-                center = Offset(dotX, dotY)
-            )
-            // Outer glow for today or near events
+            drawCircle(color = color, radius = 14f, center = Offset(dotX, dotY))
             if (days <= 10) {
-                drawCircle(
-                    color = color.copy(alpha = 0.3f),
-                    radius = 22f,
-                    center = Offset(dotX, dotY)
-                )
+                drawCircle(color = color.copy(alpha = 0.3f), radius = 22f, center = Offset(dotX, dotY))
             }
         }
 
-        // Draw Tower Silhouette in Center (Simple 2D shape)
+        // Tower Silhouette
         val towerWidth = 30f
         val towerHeight = 80f
-        // Tower body
         drawRect(
             color = Color(0xFF1A1C1E),
             topLeft = Offset(center.x - towerWidth/2, center.y - towerHeight/2 + 10f),
             size = Size(towerWidth, towerHeight - 10f)
         )
-        // Tower top
         drawRect(
             color = Color(0xFFFBC02D),
             topLeft = Offset(center.x - towerWidth/2 - 5f, center.y - towerHeight/2),
