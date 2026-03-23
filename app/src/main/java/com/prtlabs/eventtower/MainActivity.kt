@@ -7,15 +7,21 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Upcoming
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -25,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.prtlabs.eventtower.ui.BadgeStatus
 import com.prtlabs.eventtower.ui.MainViewModel
 import com.prtlabs.eventtower.ui.MainViewModelFactory
 import com.prtlabs.eventtower.ui.screens.EventFormScreen
@@ -66,6 +73,7 @@ fun MainScreen() {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val badgeStatus by viewModel.upcomingBadgeStatus.collectAsState()
 
     var importResult by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var exportResult by remember { mutableStateOf<Int?>(null) }
@@ -76,14 +84,10 @@ fun MainScreen() {
         uri?.let {
             scope.launch {
                 val json = viewModel.exportToJson()
-                val count = (upcomingEvents.size + pastEvents.size) // This is filtered, but for export we use allEvents.value.size inside VM usually. 
-                // Actually allEvents is internal to VM. Let's just say "Data exported".
                 context.contentResolver.openOutputStream(it)?.use { stream ->
                     stream.write(json.toByteArray())
                 }
-                // To show count accurately, we should get it from allEvents in VM. 
-                // Since exportToJson is synchronous and uses current value of stateIn, it's fine.
-                exportResult = 1 // Just a trigger to show dialog
+                exportResult = 1 
             }
         }
     }
@@ -112,8 +116,24 @@ fun MainScreen() {
             if (currentRoute == Screen.Upcoming.route || currentRoute == Screen.Past.route) {
                 NavigationBar {
                     items.forEach { screen ->
+                        val isUpcomingTab = screen == Screen.Upcoming
                         NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = null) },
+                            icon = { 
+                                Box {
+                                    Icon(screen.icon, contentDescription = null)
+                                    if (isUpcomingTab && badgeStatus != BadgeStatus.NONE) {
+                                        val badgeColor = if (badgeStatus == BadgeStatus.YELLOW) Color(0xFFFBC02D) else Color(0xFF81C784)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(badgeColor)
+                                                .align(Alignment.TopEnd)
+                                                .offset(x = 4.dp, y = (-2).dp)
+                                        )
+                                    }
+                                }
+                            },
                             label = { Text(screen.label) },
                             selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                             onClick = {

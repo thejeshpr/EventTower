@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
+enum class BadgeStatus { NONE, GREEN, YELLOW }
 
 class MainViewModel(private val eventDao: EventDao) : ViewModel() {
 
@@ -65,6 +68,15 @@ class MainViewModel(private val eventDao: EventDao) : ViewModel() {
         list.filter { it.recurring == Recurring.NO && it.date.isBefore(LocalDate.now()) }
             .sortedByDescending { it.date }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val upcomingBadgeStatus = upcomingEvents.map { list ->
+        val today = LocalDate.now()
+        when {
+            list.any { it.date.isEqual(today) } -> BadgeStatus.YELLOW
+            list.any { ChronoUnit.DAYS.between(today, it.date) in 1..10 } -> BadgeStatus.GREEN
+            else -> BadgeStatus.NONE
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BadgeStatus.NONE)
 
     private fun calculateNextOccurrence(startDate: LocalDate, recurring: Recurring): LocalDate {
         var nextDate = startDate
