@@ -1,6 +1,5 @@
 package com.prtlabs.eventtower.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,21 +53,13 @@ fun EventCard(
         else -> Color.White.copy(alpha = 0.9f)
     }
 
-    // Highlighting borders
-    val border = when {
-        isToday -> BorderStroke(2.dp, Color(0xFFFBC02D))
-        daysRemaining in 1..10 && !isPast -> BorderStroke(2.dp, Color(0xFF81C784))
-        else -> null
-    }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = border
+        colors = CardDefaults.cardColors(containerColor = cardBg)
     ) {
         Row(
             modifier = Modifier
