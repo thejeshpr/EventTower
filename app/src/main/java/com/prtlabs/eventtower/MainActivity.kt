@@ -196,7 +196,16 @@ fun MainScreen() {
             composable(Screen.Horizon.route) {
                 HorizonScreen(
                     upcomingEvents = upcomingEvents,
-                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") }
+                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
+                    onBackToUpcoming = {
+                        navController.navigate(Screen.Upcoming.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable("add_event") {
