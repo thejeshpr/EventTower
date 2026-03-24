@@ -1,5 +1,6 @@
 package com.prtlabs.eventtower.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -37,17 +38,27 @@ fun EventCard(
     val isPast = event.date.isBefore(today)
     val daysRemaining = ChronoUnit.DAYS.between(today, event.date)
     
+    // Determining background and content color
+    // Today: Light Yellow with Black text
+    // Next 10 Days: Light Green with Black text
+    // standard/Upcoming: Dark with White text
     val cardBg = when {
         isToday -> Color(0xFFFFF9C4)
-        daysRemaining in 1..10 -> Color(0xFFE8F5E9)
+        daysRemaining in 1..10 && !isPast -> Color(0xFFE8F5E9)
         isPast -> Color(0xFF2D2F31)
         else -> Color(0xFF1E1F22)
     }
     
     val contentColor = when {
-        isToday -> Color.Black
-        daysRemaining in 1..10 && !isPast -> Color(0xFF2E7D32)
+        isToday || (daysRemaining in 1..10 && !isPast) -> Color.Black
         else -> Color.White.copy(alpha = 0.9f)
+    }
+
+    // Highlighting borders
+    val border = when {
+        isToday -> BorderStroke(2.dp, Color(0xFFFBC02D))
+        daysRemaining in 1..10 && !isPast -> BorderStroke(2.dp, Color(0xFF81C784))
+        else -> null
     }
 
     Card(
@@ -56,7 +67,8 @@ fun EventCard(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = cardBg)
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = border
     ) {
         Row(
             modifier = Modifier
@@ -154,7 +166,6 @@ fun EventCard(
                     textAlign = TextAlign.End
                 )
                 
-                // Changed style from pill to simple uppercase text to distinguish from category
                 Text(
                     text = if (isPast) "SINCE THEN" else if (isToday) "TODAY" else "REMAINING",
                     style = MaterialTheme.typography.labelSmall.copy(
