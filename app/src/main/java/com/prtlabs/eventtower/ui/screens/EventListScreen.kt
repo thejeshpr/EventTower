@@ -39,6 +39,7 @@ fun EventListScreen(
     onEventClick: (Event) -> Unit,
     onDeleteEvent: (Event) -> Unit,
     onSettingsClick: () -> Unit,
+    onHelpClick: () -> Unit,
     isUpcoming: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -96,7 +97,10 @@ fun EventListScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Help") }, 
-                                onClick = { showMenu = false }
+                                onClick = { 
+                                    showMenu = false
+                                    onHelpClick()
+                                }
                             )
                         }
                     }

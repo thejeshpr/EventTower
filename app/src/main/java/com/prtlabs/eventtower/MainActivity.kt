@@ -138,6 +138,9 @@ fun MainScreen() {
                     onSettingsClick = {
                         context.startActivity(Intent(context, SettingsActivity::class.java))
                     },
+                    onHelpClick = {
+                        context.startActivity(Intent(context, HelpActivity::class.java))
+                    },
                     isUpcoming = true
                 )
             }
@@ -155,6 +158,9 @@ fun MainScreen() {
                     onDeleteEvent = { viewModel.deleteEvent(it) },
                     onSettingsClick = {
                         context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
+                    onHelpClick = {
+                        context.startActivity(Intent(context, HelpActivity::class.java))
                     },
                     isUpcoming = false
                 )

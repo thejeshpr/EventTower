@@ -28,6 +28,11 @@
             android:exported="false"
             android:label="Settings"
             android:theme="@style/Theme.EventTower" />
+        <activity
+            android:name=".HelpActivity"
+            android:exported="false"
+            android:label="Help"
+            android:theme="@style/Theme.EventTower" />
     </application>
 
 </manifest>
