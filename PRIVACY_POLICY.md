@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: May 2024**
+**Last Updated: May 2026**
 
 prtlabs ("we," "us," or "our") built the **Event Tower** app as an Open Source app. This service is provided by prtlabs at no cost and is intended for use as is.
 
