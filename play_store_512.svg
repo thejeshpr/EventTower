@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="108" height="108" fill="#1A1C1E"/>
+
+  <!-- Watchtower Main Pillar -->
+  <path d="M44,80 L64,80 L60,45 L48,45 Z" fill="#FBC02D"/>
+
+  <!-- Observation Platform -->
+  <path d="M38,45h32v3h-32z" fill="#81C784"/>
+
+  <!-- Observation Deck Structure -->
+  <path d="M43,45v-12h22v12h-22z" fill="#FBC02D"/>
+
+  <!-- Observation Windows -->
+  <path d="M46,36h16v4h-16z" fill="#1A1C1E"/>
+
+  <!-- Architectural Detail / Railing -->
+  <path d="M43,42h22v1h-22z" fill="#1A1C1E" fill-opacity="0.3"/>
+
+  <!-- Pointed Roof -->
+  <path d="M38,33 L70,33 L54,22 Z" fill="#81C784"/>
+
+  <!-- Beacon -->
+  <path d="M54,36 L85,28 L85,44 Z" fill="#FFFFFF" fill-opacity="0.4"/>
+</svg>
