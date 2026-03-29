@@ -282,7 +282,9 @@ fun RadarMap(
                 }
 
                 // Draw Event Title Text + Date
-                val displayText = "${event.title} (${event.date.format(dateFormatter)})"
+                val shortTitle = if (event.title.length > 10) event.title.take(10) else event.title
+                val displayText = "[${event.date.format(dateFormatter)}]-$shortTitle"
+
                 val titleTextResult = textMeasurer.measure(
                     text = displayText,
                     style = TextStyle(

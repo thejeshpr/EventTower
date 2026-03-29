@@ -24,6 +24,7 @@ import com.prtlabs.eventtower.util.DateUtils
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 @Composable
 fun EventCard(
@@ -33,8 +34,8 @@ fun EventCard(
     modifier: Modifier = Modifier
 ) {
     val today = LocalDate.now()
-    val isToday = event.date.isEqual(today)
     val isPast = event.date.isBefore(today)
+    val isToday = event.date.isEqual(today)
     val daysRemaining = ChronoUnit.DAYS.between(today, event.date)
     
     // Determining background and content color
@@ -70,8 +71,11 @@ fun EventCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val displayTitle = event.title.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                    }
                     Text(
-                        text = event.title,
+                        text = displayTitle,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = contentColor,
