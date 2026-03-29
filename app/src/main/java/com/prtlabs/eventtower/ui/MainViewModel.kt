@@ -3,7 +3,6 @@ package com.prtlabs.eventtower.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.prtlabs.eventtower.data.Event
@@ -143,7 +142,7 @@ class MainViewModel(private val eventDao: EventDao) : ViewModel() {
                 eventDao.insertEvent(event)
             }
             Pair(newCount, overwrittenCount)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Pair(-1, -1) // Error case
         }
     }
