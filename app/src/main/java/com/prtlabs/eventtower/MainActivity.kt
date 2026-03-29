@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Upcoming
 import androidx.compose.material.icons.filled.Radar
@@ -33,6 +34,7 @@ import androidx.navigation.navArgument
 import com.prtlabs.eventtower.ui.BadgeStatus
 import com.prtlabs.eventtower.ui.MainViewModel
 import com.prtlabs.eventtower.ui.MainViewModelFactory
+import com.prtlabs.eventtower.ui.screens.CalendarScreen
 import com.prtlabs.eventtower.ui.screens.EventFormScreen
 import com.prtlabs.eventtower.ui.screens.EventListScreen
 import com.prtlabs.eventtower.ui.screens.HorizonScreen
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Upcoming : Screen("upcoming", "Upcoming", Icons.Default.Upcoming)
     object Past : Screen("past", "Past", Icons.Default.History)
+    object Calendar : Screen("calendar", "Calendar", Icons.Default.CalendarMonth)
     object Horizon : Screen("horizon", "Horizon", Icons.Default.Radar)
 }
 
@@ -67,12 +70,13 @@ fun MainScreen() {
     val navController = rememberNavController()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState(initial = emptyList())
     val pastEvents by viewModel.pastEvents.collectAsState(initial = emptyList())
+    val allEvents by viewModel.allEvents.collectAsState(initial = emptyList())
     val searchQuery by viewModel.searchQuery.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val badgeStatus by viewModel.upcomingBadgeStatus.collectAsState()
 
-    val items = listOf(Screen.Upcoming, Screen.Past, Screen.Horizon)
+    val items = listOf(Screen.Upcoming, Screen.Past, Screen.Calendar, Screen.Horizon)
 
     Scaffold(
         bottomBar = {
@@ -80,7 +84,9 @@ fun MainScreen() {
             val currentDestination = navBackStackEntry?.destination
             
             val currentRoute = currentDestination?.route
-            if (currentRoute == Screen.Upcoming.route || currentRoute == Screen.Past.route || currentRoute == Screen.Horizon.route) {
+            val isMainScreen = currentRoute in items.map { it.route }
+            
+            if (isMainScreen) {
                 NavigationBar {
                     items.forEach { screen ->
                         val isUpcomingTab = screen == Screen.Upcoming
@@ -163,6 +169,14 @@ fun MainScreen() {
                         context.startActivity(Intent(context, HelpActivity::class.java))
                     },
                     isUpcoming = false
+                )
+            }
+            composable(Screen.Calendar.route) {
+                CalendarScreen(
+                    events = allEvents,
+                    onAddEventClick = { navController.navigate("add_event") },
+                    onEventClick = { event -> navController.navigate("edit_event/${event.id}") },
+                    onDeleteEvent = { viewModel.deleteEvent(it) }
                 )
             }
             composable(Screen.Horizon.route) {

@@ -34,7 +34,7 @@ class MainViewModel(private val eventDao: EventDao) : ViewModel() {
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory = _selectedCategory.asStateFlow()
 
-    private val allEvents = eventDao.getAllEvents().stateIn(
+    val allEvents = eventDao.getAllEvents().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
