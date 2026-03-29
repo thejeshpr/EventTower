@@ -39,8 +39,8 @@ class DailyBriefingReceiver : BroadcastReceiver() {
             
             Log.d("DailyBriefing", "Checking events for $today. Total events in DB: ${allEvents.size}")
 
-            val upcomingEvents = allEvents.map { event ->
-                if (event.recurring != Recurring.NO && event.date.isBefore(today)) {
+            val todayEvents = allEvents.mapNotNull { event ->
+                val adjustedDate = if (event.recurring != Recurring.NO && event.date.isBefore(today)) {
                     var nextDate = event.date
                     while (nextDate.isBefore(today)) {
                         nextDate = when (event.recurring) {
@@ -49,32 +49,29 @@ class DailyBriefingReceiver : BroadcastReceiver() {
                             else -> nextDate
                         }
                     }
-                    event.copy(date = nextDate)
+                    nextDate
                 } else {
+                    event.date
+                }
+                
+                if (adjustedDate.isEqual(today)) {
                     event
+                } else {
+                    null
                 }
             }
 
-            val todayCount = upcomingEvents.count { it.date.isEqual(today) }
-            val weekendStart = today.plusDays(if (today.dayOfWeek.value >= 5) 0 else (5 - today.dayOfWeek.value).toLong())
-            val weekendEnd = weekendStart.plusDays(2)
-            
-            val comingUpCount = upcomingEvents.count { 
-                (it.date.isAfter(today) && it.date.isBefore(today.plusDays(4))) ||
-                (it.date.isAfter(weekendStart.minusDays(1)) && it.date.isBefore(weekendEnd.plusDays(1)))
-            }
+            Log.d("DailyBriefing", "Found ${todayEvents.size} events today.")
 
-            Log.d("DailyBriefing", "Found $todayCount today and $comingUpCount coming up.")
-
-            if (todayCount > 0 || comingUpCount > 0) {
-                showNotification(context, todayCount, comingUpCount)
+            if (todayEvents.isNotEmpty()) {
+                showNotification(context, todayEvents.size, todayEvents.map { it.title })
             } else {
-                Log.d("DailyBriefing", "No events for today or soon. Skipping notification.")
+                Log.d("DailyBriefing", "No events for today. Skipping notification.")
             }
         }
     }
 
-    private fun showNotification(context: Context, todayCount: Int, comingUpCount: Int) {
+    private fun showNotification(context: Context, count: Int, titles: List<String>) {
         val channelId = "daily_briefing_channel"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -95,19 +92,19 @@ class DailyBriefingReceiver : BroadcastReceiver() {
         }
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val message = StringBuilder("Good morning! ")
-        if (todayCount > 0) {
-            message.append("You have $todayCount event${if (todayCount > 1) "s" else ""} today. ")
-        }
-        if (comingUpCount > 0) {
-            message.append("And $comingUpCount coming up soon.")
+        val titleText = "$count Event${if (count > 1) "s" else ""} Today"
+        
+        val bodyText = if (count == 1) {
+            titles.first()
+        } else {
+            titles.joinToString("\n") { "• $it" }
         }
 
-        // Use a standard Android icon to ensure visibility during testing
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Event Tower Briefing")
-            .setContentText(message.toString())
+            .setContentTitle(titleText)
+            .setContentText(if (count == 1) titles.first() else "Tap to see $count events")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(pendingIntent)
